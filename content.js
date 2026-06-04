@@ -7,8 +7,10 @@
   let sessions = [];
   let cropState = null;   // { img, scale, vpX, vpY, zoom, sel: {x,y,w,h} }
   let dragOp = null;       // current drag operation in crop modal
-  let previewState = null; // { origImg, editImg, session, origCanvas, topCanvas, displayScale }
+  let previewState = null; // { origImg, editImg, session, origCanvas, topCanvas, displayScale, zoom, panX, panY }
   let eraserState = { active: false, painting: false, size: 24 };
+  let spacePressed = false;
+  let previewDrag = null;  // { startX, startY, startPanX, startPanY }
 
   /* ── Storage ───────────────────────────────── */
   const store = {
@@ -264,40 +266,131 @@
       updateEraserCursorSize();
     });
 
-    // Eraser painting events on the top canvas
+    // Eraser painting / Panning events on the preview stage
     const getTopCanvas = () => previewModal.querySelector('#aiec-pcanvas-top');
+    const pstage = previewModal.querySelector('#aiec-pstage');
 
-    previewModal.querySelector('#aiec-pstage').addEventListener('mousedown', e => {
-      if (!eraserState.active || !previewState) return;
-      const tc = getTopCanvas();
-      if (!tc.contains(e.target) && e.target !== tc) return;
-      e.preventDefault();
-      eraserState.painting = true;
-      eraseAt(e);
+    pstage.addEventListener('mousedown', e => {
+      if (!previewState) return;
+
+      // Pan condition: middle mouse (button 1), right mouse (button 2), or spacebar is held down
+      const isPan = e.button === 1 || e.button === 2 || spacePressed;
+      if (isPan) {
+        e.preventDefault();
+        previewDrag = {
+          startX: e.clientX,
+          startY: e.clientY,
+          startPanX: previewState.panX,
+          startPanY: previewState.panY
+        };
+        pstage.style.cursor = 'grabbing';
+        return;
+      }
+
+      if (e.button === 0 && eraserState.active) {
+        const tc = getTopCanvas();
+        if (!tc.contains(e.target) && e.target !== tc) return;
+        e.preventDefault();
+        eraserState.painting = true;
+        eraseAt(e);
+      }
     });
 
+    pstage.addEventListener('contextmenu', e => {
+      if (previewState) {
+        e.preventDefault();
+      }
+    });
+
+    pstage.addEventListener('wheel', e => {
+      if (!previewState) return;
+      e.preventDefault();
+
+      const delta = e.deltaY < 0 ? 0.15 : -0.15;
+      const oldZ = previewState.zoom;
+      const newZ = clamp(oldZ + delta, 0.5, 8);
+
+      // Zoom centered on mouse position
+      const rect = pstage.getBoundingClientRect();
+      const mX = e.clientX - rect.left - rect.width / 2;
+      const mY = e.clientY - rect.top - rect.height / 2;
+
+      previewState.panX = mX - (mX - previewState.panX) * (newZ / oldZ);
+      previewState.panY = mY - (mY - previewState.panY) * (newZ / oldZ);
+      previewState.zoom = newZ;
+
+      updatePreviewTransform();
+    }, { passive: false });
+
     window.addEventListener('mousemove', e => {
-      if (!eraserState.active || !previewState) return;
+      if (!previewState) return;
 
-      // Update cursor position
-      const s = eraserState.size * (previewState.displayScale || 1);
-      eraserCursor.style.left = (e.clientX - s / 2) + 'px';
-      eraserCursor.style.top = (e.clientY - s / 2) + 'px';
-      eraserCursor.style.display = 'block';
+      if (previewDrag) {
+        const dx = e.clientX - previewDrag.startX;
+        const dy = e.clientY - previewDrag.startY;
+        previewState.panX = previewDrag.startPanX + dx;
+        previewState.panY = previewDrag.startPanY + dy;
+        updatePreviewTransform();
+        return;
+      }
 
-      if (eraserState.painting) eraseAt(e);
+      if (eraserState.active) {
+        const z = previewState.zoom || 1;
+        const s = eraserState.size * (previewState.displayScale || 1) * z;
+
+        const pwrap = previewModal.querySelector('#aiec-pwrap');
+        const wrapRect = pwrap.getBoundingClientRect();
+        const inside = (
+          e.clientX >= wrapRect.left &&
+          e.clientX <= wrapRect.right &&
+          e.clientY >= wrapRect.top &&
+          e.clientY <= wrapRect.bottom
+        );
+
+        if (inside && !spacePressed) {
+          eraserCursor.style.left = (e.clientX - s / 2) + 'px';
+          eraserCursor.style.top = (e.clientY - s / 2) + 'px';
+          eraserCursor.style.display = 'block';
+          pwrap.style.cursor = 'none';
+        } else {
+          eraserCursor.style.display = 'none';
+          pwrap.style.cursor = spacePressed ? 'grab' : 'default';
+        }
+
+        if (eraserState.painting && !spacePressed) eraseAt(e);
+      }
     });
 
     window.addEventListener('mouseup', () => {
+      if (previewDrag) {
+        previewDrag = null;
+        pstage.style.cursor = spacePressed ? 'grab' : 'default';
+      }
       eraserState.painting = false;
     });
 
-    // Esc
+    // Spacebar and Esc key handlers
     window.addEventListener('keydown', e => {
+      if (e.code === 'Space') {
+        if (previewModal.classList.contains('open')) {
+          e.preventDefault();
+          if (!spacePressed) {
+            spacePressed = true;
+            pstage.style.cursor = 'grab';
+          }
+        }
+      }
       if (e.key === 'Escape') {
         if (previewModal.classList.contains('open')) { closePreview(); return; }
         if (cropModal.classList.contains('open')) { closeCrop(); return; }
         sidebar.classList.remove('open');
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      if (e.code === 'Space') {
+        spacePressed = false;
+        pstage.style.cursor = eraserState.active ? 'none' : 'default';
       }
     });
   }
@@ -325,9 +418,17 @@
   }
 
   function updateEraserCursorSize() {
-    const s = eraserState.size * (previewState ? (previewState.displayScale || 1) : 1);
+    const z = (previewState && previewState.zoom) ? previewState.zoom : 1;
+    const s = eraserState.size * (previewState ? (previewState.displayScale || 1) : 1) * z;
     eraserCursor.style.width = s + 'px';
     eraserCursor.style.height = s + 'px';
+  }
+
+  function updatePreviewTransform() {
+    if (!previewState) return;
+    const pwrap = previewModal.querySelector('#aiec-pwrap');
+    pwrap.style.transform = `translate(${previewState.panX}px, ${previewState.panY}px) scale(${previewState.zoom})`;
+    updateEraserCursorSize();
   }
 
   function resetTopCanvas() {
@@ -728,7 +829,8 @@
       ctx.drawImage(origImg, 0, 0);
       ctx.drawImage(editImg, session.cx, session.cy, session.cw, session.ch);
 
-      previewState = { origImg, editImg, session, mergedCanvas: mc, displayScale: 1 };
+      previewState = { origImg, editImg, session, mergedCanvas: mc, displayScale: 1, zoom: 1, panX: 0, panY: 0 };
+      updatePreviewTransform();
 
       // Reset toolbar state
       eraserState.active = false;
