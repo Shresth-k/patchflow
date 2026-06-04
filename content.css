@@ -31,11 +31,12 @@
   display: flex; align-items: center; justify-content: center;
   background: var(--a-black); border: 1px solid var(--a-line);
   color: var(--a-white); cursor: pointer; user-select: none;
-  transition: border-color .2s ease, background .2s ease;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
 }
 #aiec-fab:hover {
-  border-color: var(--a-text-2);
+  border-color: var(--a-white);
   background: var(--a-surface);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
 }
 #aiec-fab svg { width: 18px; height: 18px; stroke: var(--a-white); }
 #aiec-fab span { display: none; }
@@ -72,9 +73,13 @@
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
   background: transparent; border: 1px solid transparent;
   color: var(--a-text-2); cursor: pointer;
-  transition: color .15s, border-color .15s;
+  transition: color .15s, border-color .15s, box-shadow .15s;
 }
-.aiec-icon-btn:hover { color: var(--a-white); border-color: var(--a-line); }
+.aiec-icon-btn:hover {
+  color: var(--a-white);
+  border-color: var(--a-white);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+}
 .aiec-icon-btn svg { width: 14px; height: 14px; }
 
 .aiec-side-body {
@@ -98,7 +103,7 @@
 
 .aiec-label {
   font-size: 9px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .14em; color: var(--a-text-3);
+  letter-spacing: .14em; color: var(--a-white);
   padding: 8px 0 2px;
 }
 
@@ -106,9 +111,12 @@
 .aiec-card {
   background: var(--a-surface); border: 1px solid var(--a-line);
   padding: 10px; display: flex; flex-direction: column; gap: 8px;
-  transition: border-color .15s;
+  transition: border-color .15s, box-shadow .15s;
 }
-.aiec-card:hover { border-color: var(--a-line-hi); }
+.aiec-card:hover {
+  border-color: var(--a-white);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+}
 
 .aiec-card-top { display: flex; align-items: center; justify-content: space-between; }
 .aiec-card-name {
@@ -143,7 +151,11 @@
   font-size: 10px; font-weight: 500; color: var(--a-text-2);
   cursor: pointer; transition: all .15s;
 }
-.aiec-sm-btn:hover { border-color: var(--a-text-2); color: var(--a-white); }
+.aiec-sm-btn:hover {
+  border-color: var(--a-white);
+  color: var(--a-white);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+}
 .aiec-sm-btn svg { width: 11px; height: 11px; }
 
 /* Dropzone */
@@ -155,6 +167,7 @@
 }
 .aiec-drop:hover, .aiec-drop.over {
   border-color: var(--a-white); border-style: solid;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
 }
 .aiec-drop svg { width: 16px; height: 16px; stroke: var(--a-text-3); transition: stroke .15s; }
 .aiec-drop:hover svg, .aiec-drop.over svg { stroke: var(--a-white); }
@@ -256,7 +269,11 @@
 .aiec-btn-ghost {
   background: transparent; border: 1px solid var(--a-text-3); color: var(--a-text);
 }
-.aiec-btn-ghost:hover { border-color: var(--a-white); color: var(--a-white); }
+.aiec-btn-ghost:hover {
+  border-color: var(--a-white);
+  color: var(--a-white);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+}
 .aiec-btn-fill {
   background: var(--a-white); border: none; color: var(--a-black);
 }

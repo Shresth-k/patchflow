@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AI Precision Edit & Crop",
+  "name": "PatchFlow Edit Merge",
   "version": "1.0.0",
-  "description": "Precise image editing in ChatGPT & Gemini. Crop a region, edit it via AI, and stitch it back seamlessly.",
+  "description": "PatchFlow Edit Merge for ChatGPT & Gemini. Crop a region, edit it via AI, and stitch it back seamlessly.",
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -14,7 +14,7 @@
     "https://*.gemini.google.com/*"
   ],
   "action": {
-    "default_title": "AI Precision Edit",
+    "default_title": "PatchFlow Edit Merge",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",

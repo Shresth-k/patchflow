@@ -57,12 +57,12 @@
 
   /* ── Build DOM ──────────────────────────────── */
   // FAB
-  const fab = h('div', 'aiec', { id: 'aiec-fab', html: `${ICO.crop}<span>Precise Edit</span>` });
+  const fab = h('div', 'aiec', { id: 'aiec-fab', html: `${ICO.crop}<span>PatchFlow-Edit Merge</span>` });
   // Sidebar
   const sidebar = h('div', 'aiec', { id: 'aiec-sidebar' });
   sidebar.innerHTML = `
     <div class="aiec-side-head">
-      <span>Precise Edit</span>
+      <span>PatchFlow-Edit Merge</span>
       <button class="aiec-icon-btn" id="aiec-close">${ICO.x}</button>
     </div>
     <div class="aiec-side-body" id="aiec-cards">
