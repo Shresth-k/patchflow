@@ -15,15 +15,30 @@
   /* ── Storage ───────────────────────────────── */
   const store = {
     async load() {
-      return new Promise(r => chrome.storage.local.get({ aiec: [] }, d => { sessions = d.aiec; r(); }));
+      try {
+        const data = sessionStorage.getItem('aiec');
+        sessions = data ? JSON.parse(data) : [];
+      } catch (e) {
+        sessions = [];
+      }
+      return Promise.resolve();
     },
     async save() {
       sessions = sessions.slice(0, 12);
-      return new Promise(r => chrome.storage.local.set({ aiec: sessions }, r));
+      try {
+        sessionStorage.setItem('aiec', JSON.stringify(sessions));
+      } catch (e) {
+        console.error('Failed to save sessions to sessionStorage:', e);
+      }
+      return Promise.resolve();
     }
   };
 
   /* ── Helpers ───────────────────────────────── */
+  const isContextValid = () => {
+    try { return !!(chrome && chrome.runtime && chrome.runtime.id); }
+    catch (e) { return false; }
+  };
   const h = (tag, cls, attrs) => {
     const el = document.createElement(tag);
     if (cls) el.className = cls;
@@ -323,6 +338,7 @@
     }, { passive: false });
 
     window.addEventListener('mousemove', e => {
+      if (!isContextValid()) return;
       if (!previewState) return;
 
       if (previewDrag) {
@@ -362,6 +378,7 @@
     });
 
     window.addEventListener('mouseup', () => {
+      if (!isContextValid()) return;
       if (previewDrag) {
         previewDrag = null;
         pstage.style.cursor = spacePressed ? 'grab' : 'default';
@@ -371,6 +388,7 @@
 
     // Spacebar and Esc key handlers
     window.addEventListener('keydown', e => {
+      if (!isContextValid()) return;
       if (e.code === 'Space') {
         if (previewModal.classList.contains('open')) {
           e.preventDefault();
@@ -388,6 +406,7 @@
     });
 
     window.addEventListener('keyup', e => {
+      if (!isContextValid()) return;
       if (e.code === 'Space') {
         spacePressed = false;
         pstage.style.cursor = eraserState.active ? 'none' : 'default';
@@ -575,6 +594,7 @@
   }
 
   function onSelMove(e) {
+    if (!isContextValid()) return;
     if (!dragOp || !cropState) return;
     e.preventDefault();
 
@@ -605,6 +625,7 @@
   }
 
   function onSelUp() {
+    if (!isContextValid()) return;
     if (dragOp && cropState) {
       // After resize completes, auto-zoom into the selection if it's small
       autoZoom();
@@ -622,6 +643,7 @@
     panOp = { startMX: e.clientX, startMY: e.clientY, startVPX: cropState.vpX, startVPY: cropState.vpY };
 
     const onMove = ev => {
+      if (!isContextValid()) return;
       if (!panOp) return;
       cropState.vpX = panOp.startVPX + (ev.clientX - panOp.startMX);
       cropState.vpY = panOp.startVPY + (ev.clientY - panOp.startMY);
@@ -970,6 +992,7 @@
     });
 
     window.addEventListener('mousemove', e => {
+      if (!isContextValid()) return;
       if (!dragging) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
@@ -980,22 +1003,27 @@
       sidebar.style.right = 'auto';
     });
 
-    window.addEventListener('mouseup', () => { dragging = false; });
+    window.addEventListener('mouseup', () => {
+      if (!isContextValid()) return;
+      dragging = false;
+    });
   }
 
   /* ── Memory cleanup ───────────────────── */
   function cleanup() {
-    // Wipe stored sessions (base64 images) from storage
-    chrome.storage.local.remove('aiec');
     sessions = [];
     cropState = null;
     previewState = null;
   }
 
   // Clear everything when the tab/window is closed
-  window.addEventListener('beforeunload', cleanup);
+  window.addEventListener('beforeunload', () => {
+    if (isContextValid()) cleanup();
+  });
   // Also clear when navigating away (SPA navigations)
-  window.addEventListener('pagehide', cleanup);
+  window.addEventListener('pagehide', () => {
+    if (isContextValid()) cleanup();
+  });
 
   /* ── Boot ───────────────────────────────── */
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
