@@ -430,3 +430,39 @@
   background: var(--a-accent);
 }
 .aiec-toast.err .aiec-toast-dot { background: var(--a-red); }
+
+/* ── Tooltip ────────────────────────────────── */
+.aiec-tooltip {
+  position: relative;
+}
+.aiec-tooltip::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px); right: 0;
+  width: 220px;
+  background: var(--a-black);
+  border: 1px solid var(--a-white);
+  color: var(--a-white);
+  padding: 8px 10px;
+  font-size: 10px;
+  line-height: 1.4;
+  font-family: var(--a-sans);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 999999;
+  white-space: normal;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+}
+.aiec-tooltip:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+#aiec-info {
+  color: var(--a-white);
+}
