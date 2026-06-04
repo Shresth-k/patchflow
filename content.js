@@ -51,6 +51,8 @@
     zoomOut: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>`,
     eraser: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h10"/><path d="M5.5 13.5 9 17l7-7-5-5-5.5 5.5a2.83 2.83 0 0 0 0 3z"/></svg>`,
     undo: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`,
+    eye: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+    eyeOff: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
   };
 
   /* ── Build DOM ──────────────────────────────── */
@@ -65,7 +67,7 @@
     </div>
     <div class="aiec-side-body" id="aiec-cards">
       <button class="aiec-new-btn" id="aiec-new">${ICO.plus}<span>New Crop</span></button>
-      <div class="aiec-label">Sessions</div>
+      <div class="aiec-label">Active Sessions</div>
       <div id="aiec-list"></div>
     </div>`;
 
@@ -73,7 +75,7 @@
   const cropModal = h('div', 'aiec', { id: 'aiec-crop-modal' });
   cropModal.innerHTML = `
     <div class="aiec-crop-bar">
-      <span class="aiec-crop-bar-title">Select crop area</span>
+      <span class="aiec-crop-bar-title">Crop Selection</span>
       <div class="aiec-crop-bar-right">
         <button class="aiec-icon-btn" id="aiec-zoom-out" title="Zoom out">${ICO.zoomOut}</button>
         <span class="aiec-zoom-display" id="aiec-zoom-label">100%</span>
@@ -99,14 +101,14 @@
     </div>
     <div class="aiec-crop-foot">
       <button class="aiec-btn aiec-btn-ghost" id="aiec-crop-cancel">Cancel</button>
-      <button class="aiec-btn aiec-btn-fill"  id="aiec-crop-ok">Confirm &amp; Copy</button>
+      <button class="aiec-btn aiec-btn-fill"  id="aiec-crop-ok">Confirm</button>
     </div>`;
 
   // Preview modal
   const previewModal = h('div', 'aiec', { id: 'aiec-preview-modal' });
   previewModal.innerHTML = `
     <div class="aiec-preview-bar">
-      <span class="aiec-preview-title">Merge Preview</span>
+      <span class="aiec-preview-title">Preview</span>
       <button class="aiec-icon-btn" id="aiec-preview-x">${ICO.x}</button>
     </div>
     <div class="aiec-preview-stage" id="aiec-pstage">
@@ -125,6 +127,8 @@
           <input type="range" id="aiec-eraser-size" min="4" max="120" value="24">
           <span class="aiec-size-val" id="aiec-size-val">24</span>
         </div>
+        <div class="aiec-toolbar-sep"></div>
+        <button data-v="eye" class="active" id="aiec-eye-btn">${ICO.eye} Region</button>
         <div class="aiec-toolbar-sep"></div>
         <button data-v="reset">${ICO.undo} Reset</button>
       </div>
@@ -146,6 +150,7 @@
     await store.load();
     [fab, sidebar, cropModal, previewModal, fileInput, eraserCursor].forEach(e => document.body.appendChild(e));
     bindEvents();
+    makePanelDraggable();
     renderList();
   }
 
@@ -224,6 +229,15 @@
           previewModal.querySelector('#aiec-ptoolbar button[data-v="merged"]').classList.add('active');
           drawPreview(false);
         }
+        return;
+      }
+
+      if (v === 'eye') {
+        // Toggle highlight visibility
+        const hl = previewModal.querySelector('#aiec-phighlight');
+        const visible = hl.classList.toggle('visible');
+        btn.classList.toggle('active', visible);
+        btn.innerHTML = (visible ? ICO.eye : ICO.eyeOff) + ' Region';
         return;
       }
 
@@ -720,6 +734,10 @@
       previewModal.querySelector('#aiec-eraser-controls').style.display = 'none';
       previewModal.querySelectorAll('#aiec-ptoolbar button').forEach(b => b.classList.remove('active'));
       previewModal.querySelector('#aiec-ptoolbar button[data-v="merged"]').classList.add('active');
+      // Reset eye toggle to visible
+      const eyeBtn = previewModal.querySelector('#aiec-eye-btn');
+      eyeBtn.classList.add('active');
+      eyeBtn.innerHTML = ICO.eye + ' Region';
 
       drawPreview(false);
       previewModal.classList.add('open');
@@ -749,7 +767,7 @@
     if (showOriginal) {
       // Hide the top canvas entirely to show just original
       topCanvas.style.opacity = '0';
-      hl.style.display = 'none';
+      hl.classList.remove('visible');
     } else {
       // Top layer: merged result (erasable)
       topCanvas.width = mergedCanvas.width;
@@ -766,7 +784,11 @@
         hl.style.top = (session.cy * previewState.displayScale) + 'px';
         hl.style.width = (session.cw * previewState.displayScale) + 'px';
         hl.style.height = (session.ch * previewState.displayScale) + 'px';
-        hl.style.display = 'block';
+        // Respect the eye toggle — check if eye button is active
+        const eyeBtn = previewModal.querySelector('#aiec-eye-btn');
+        if (eyeBtn && eyeBtn.classList.contains('active')) {
+          hl.classList.add('visible');
+        }
 
         updateEraserCursorSize();
       });
@@ -826,7 +848,50 @@
     });
   }
 
-  /* ── Boot ───────────────────────────────────── */
+  /* ── Make Panel Draggable ───────────────── */
+  function makePanelDraggable() {
+    const head = sidebar.querySelector('.aiec-side-head');
+    let dragging = false, startX, startY, startLeft, startTop;
+
+    head.addEventListener('mousedown', e => {
+      // Don't drag if clicking close button
+      if (e.target.closest('.aiec-icon-btn')) return;
+      e.preventDefault();
+      dragging = true;
+      const rect = sidebar.getBoundingClientRect();
+      startX = e.clientX; startY = e.clientY;
+      startLeft = rect.left; startTop = rect.top;
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const newLeft = clamp(startLeft + dx, 0, window.innerWidth - sidebar.offsetWidth);
+      const newTop = clamp(startTop + dy, 0, window.innerHeight - 60);
+      sidebar.style.left = newLeft + 'px';
+      sidebar.style.top = newTop + 'px';
+      sidebar.style.right = 'auto';
+    });
+
+    window.addEventListener('mouseup', () => { dragging = false; });
+  }
+
+  /* ── Memory cleanup ───────────────────── */
+  function cleanup() {
+    // Wipe stored sessions (base64 images) from storage
+    chrome.storage.local.remove('aiec');
+    sessions = [];
+    cropState = null;
+    previewState = null;
+  }
+
+  // Clear everything when the tab/window is closed
+  window.addEventListener('beforeunload', cleanup);
+  // Also clear when navigating away (SPA navigations)
+  window.addEventListener('pagehide', cleanup);
+
+  /* ── Boot ───────────────────────────────── */
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
