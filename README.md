@@ -33,3 +33,4 @@ PatchFlow solves this by limiting the AI's scope to only the area you select.
 
 No APIs. No billing setup. No complex tools.
 
+(images placeholder)
